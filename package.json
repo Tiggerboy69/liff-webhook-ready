@@ -6,6 +6,18 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
-  }
+    "express": "^4.21.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tiggerboy69/liff-webhook-ready.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Tiggerboy69/liff-webhook-ready/issues"
+  },
+  "homepage": "https://github.com/Tiggerboy69/liff-webhook-ready#readme",
+  "description": ""
 }
