@@ -1,6 +1,20 @@
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+// Root route
+app.get('/', (req, res) => {
+  res.send('🎉 Backend is alive!');
+});
+
+// Webhook route
 app.post('/webhook', (req, res) => {
   try {
-    console.log('📩 Raw body received:', req.body); // ← log ตรงนี้ไว้
+    console.log('📩 Raw body received:', req.body);
 
     const filePath = path.join(__dirname, 'data', 'transactions.json');
     if (!fs.existsSync(filePath)) {
@@ -28,4 +42,19 @@ app.post('/webhook', (req, res) => {
     console.error('❌ ERROR in /webhook:', error.stack);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
+});
+
+// Success list route
+app.get('/transactions/success', (req, res) => {
+  const filePath = path.join(__dirname, 'data', 'transactions.json');
+  if (!fs.existsSync(filePath)) {
+    return res.json([]);
+  }
+  const transactions = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  const successOnly = transactions.filter(tx => tx.status === 'success');
+  res.json(successOnly);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
