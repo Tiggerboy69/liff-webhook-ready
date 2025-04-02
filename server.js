@@ -1,51 +1,33 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json()); // รองรับ JSON body
-
-// ✅ Root ใช้เช็คว่า server ทำงาน
-app.get('/', (req, res) => {
-  res.send('🎉 Backend is alive!');
-});
-
-// ✅ รับ Webhook และบันทึกข้อมูลลง transactions.json
 app.post('/webhook', (req, res) => {
-  const newTransaction = {
-    txid: req.body.txid || `TX${Date.now()}`,
-    amount: req.body.amount || 0,
-    status: req.body.status || 'pending',
-    by: req.body.by || 'unknown',
-    timestamp: new Date().toISOString()
-  };
+  try {
+    const filePath = path.join(__dirname, 'data', 'transactions.json');
 
-  const filePath = path.join(__dirname, 'data', 'transactions.json');
+    // อ่านไฟล์ก่อน ถ้ามี
+    let transactions = [];
+    if (fs.existsSync(filePath)) {
+      const fileData = fs.readFileSync(filePath, 'utf-8');
+      transactions = JSON.parse(fileData);
+    }
 
-  // อ่านข้อมูลเก่า
-  const transactions = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    // สร้างข้อมูลใหม่
+    const newTransaction = {
+      txid: req.body.txid || `TX${Date.now()}`,
+      amount: req.body.amount || 0,
+      status: req.body.status || 'pending',
+      by: req.body.by || 'unknown',
+      timestamp: new Date().toISOString()
+    };
 
-  // เพิ่มรายการใหม่
-  transactions.push(newTransaction);
+    // เพิ่มข้อมูลเข้า array แล้วบันทึก
+    transactions.push(newTransaction);
+    fs.writeFileSync(filePath, JSON.stringify(transactions, null, 2));
 
-  // เขียนกลับลงไฟล์
-  fs.writeFileSync(filePath, JSON.stringify(transactions, null, 2));
+    console.log('✅ Webhook received:', newTransaction);
+    res.status(200).json({ message: 'Transaction saved', data: newTransaction });
 
-  console.log('✅ Webhook received:', newTransaction);
-  res.status(200).json({ message: 'Transaction saved', data: newTransaction });
-});
-
-// ✅ ดึงรายการเฉพาะที่ชำระเงินสำเร็จ
-app.get('/transactions/success', (req, res) => {
-  const filePath = path.join(__dirname, 'data', 'transactions.json');
-  const transactions = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-
-  const successOnly = transactions.filter(tx => tx.status === 'success');
-
-  res.json(successOnly);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  } catch (error) {
+    // log error ลงใน Render logs
+    console.error('❌ ERROR in /webhook:', error.stack);
+    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
 });
