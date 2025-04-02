@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รายการชำระเงิน</title>
+  <style>
+    body { font-family: sans-serif; background: #f1f5f9; padding: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #e2e8f0;
+      font-weight: bold;
+    }
+    .status-success {
+      color: green;
+      font-weight: bold;
+    }
+    .btn-save {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      border: none;
+      background: red;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .btn-save.saved {
+      background: green;
+    }
+    select {
+      font-size: 0.9rem;
+      padding: 0.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 รายการชำระเงินสำเร็จ</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>TOPUP</th>
+        <th>Status</th>
+        <th>BY</th>
+        <th>Save</th>
+      </tr>
+    </thead>
+    <tbody id="transactions">
+      <tr><td colspan="5">กำลังโหลดข้อมูล...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    async function loadTransactions() {
+      const container = document.getElementById('transactions');
+      container.innerHTML = '<tr><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
+      try {
+        const res = await fetch('/transactions/success', {
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        // ลอง parse เป็น JSON หากไม่ได้นำมาใช้เป็น empty data
+        let data = [];
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.error('Response is not valid JSON, treating as empty data:', e);
+          data = [];
+        }
+        
+        if (!data || data.length === 0) {
+          container.innerHTML = '<tr><td colspan="5">🔔 ไม่มีรายการในวันนี้</td></tr>';
+          return;
+        }
+        
+        container.innerHTML = '';
+        data.forEach((tx, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${tx.txid}</td>
+            <td>${tx.amount} บาท</td>
+            <td class="status-success">${tx.status}</td>
+            <td>
+              <select id="select-${index}">
+                <option value="X1">X1</option>
+                <option value="X2">X2</option>
+                <option value="X3">X3</option>
+                <option value="X4">X4</option>
+                <option value="X5">X5</option>
+                <option value="X6">X6</option>
+                <option value="X7">X7</option>
+                <option value="X8">X8</option>
+              </select>
+            </td>
+            <td><button class="btn-save" onclick="saveName(${index}, '${tx.txid}')">✓</button></td>
+          `;
+          container.appendChild(row);
+        });
+      } catch (err) {
+        container.innerHTML = '<tr><td colspan="5">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+        console.error('Error loading transactions:', err);
+      }
+    }
+
+    function saveName(index, txid) {
+      const selectedName = document.getElementById(`select-${index}`).value;
+      const btn = document.querySelectorAll('.btn-save')[index];
+      fetch('/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          txid: txid,
+          amount: 0,
+          status: 'success',
+          by: selectedName
+        })
+      })
+      .then(() => {
+        btn.classList.add('saved');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการบันทึก');
+      });
+    }
+
+    loadTransactions();
+  </script>
+</body>
+</html>
